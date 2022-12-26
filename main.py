@@ -1,6 +1,11 @@
 from machine import UART, Pin, SPI
-from mfrc522 import MFRC522
 import time
+from AVR_CMD import Command, AVR_model, AVR_signature
+import DataProcess as DP
+
+Blink_chase = '945C000C946E000C946E000C946E00946E000C946E000C946E000C946E00946E000C946E000C946E000C946E00946E000C946E000C946E000C946E009436010C946E000C946E000C946E00946E000C946E000C946E000C946E00946E000C946E0000000008000201000304070000000000000000000000000028002B0000000000240027002A000404040404040402020202020203030303030102040810204080010204082001020408102011241FBECFEFD8E0BFCDBF21E0A0E0B1E001C01D92A93007E1F70E9480010C94FD010C940000E0FC01EC55FF4F249180579F4FFC0191882399F090E0880F991FFC01EA574FA591B491FC01E458FF4F85919491B7F894EC91E22BEC938FBF089590E001E859FF4F2491FC01EC55FF4F349101E057FF4FE491EE23C9F0222339F03001F1A8F4213019F1223029F1F0E00FFF1FE458FF4FA591B4918FB7F89491611126C030953E233C938FBF089530A9F02830C9F0243049F7809180007D03C0809180008F7780938000DFCFB58F7784BDDBCF84B58F7DFBCF8091008F778093B000D2CF8091B0008F7DCF3E2BDACF3FB7F89480910501909101A0910701B091080126B5A89B05C03F19F00196A11DB11D3FBFBA2FA92F2F8827BC01CD01620F711D811D911DE0660F771F881F991F4A95D1F70895929F92AF92BF92CF92DF92EF92FF9294DB004B015C0188EEC82E83E0D82E2CF12C0E94DB00681979098A099B093E734081059105A8F321E0C21AD10808F10888EE880E83E0981EA11CB11C14D104E104F10429F7FF90EF90DF9090BF90AF909F908F9008951F920F92B60F9211242F933F938F939F93AF93938091010190910201A0910301B091013091000123E0230F2D3758F501961DB11D209300018093010190930201930301B09304018091050190910601910701B09108010196A11DB11D80930190930601A0930701B0930801BF91919F918F913F912F910F900FBE0F9090189526E8230F0296A11DB11DD2CF9484B5826084BD84B5816084BD85B56085BD85B5816085BD80916E008160936E0010928100809181008260809300809181008160809381008091800060809380008091B10084608093B10091B00081608093B00080917A008460937A0080917A00826080937A00809100816080937A0080917A0080688093001092C10082E00E94700083E00E940084E00E947000C0E0D0E061E082E0948F0060E083E00E948F0060E084E0948F000E94000161E083E00E948F00E082E00E948F0060E084E00E948F0094000161E084E00E948F0060E082E0948F0060E083E00E948F000E94000197A1F20E940000D1CFF894FFCFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'
+Blink = '945C000C946E000C946E000C946E00946E000C946E000C946E000C946E00946E000C946E000C946E000C946E00946E000C946E000C946E000C946E009413010C946E000C946E000C946E00946E000C946E000C946E000C946E00946E000C946E0000000000240027000000000000250028002B00040404040404040202020202020303030303030204081020408001020408102001020810200000000800020100000304070000000000000011241FBECFEFD8E0BFCDBF21E0A0E0B1E001C01D92A93007E1F70E945D010C94CC010C940000EAF0E02491E2E9F0E09491EEE7F0E091EE23C9F0222339F0233001F1A8F43019F1223029F1F0E0EE0FFF1FEE584FA591B4912FB7F894EC91811126C0959E239C932FBF08952730A9F02830F0243049F7209180002F7D03C02091002F7720938000DFCF24B52F7724BDCF24B52F7DFBCF2091B0002F77209300D2CF2091B0002F7DF9CF9E2BDACFB7F8948091050190910601A091070191080126B5A89B05C02F3F19F001961DB11D3FBFBA2FA92F982F8827BC0101620F711D811D911D42E0660F771F1F991F4A95D1F708958F929F92AF9292CF92DF92EF92FF920E94B8004B010188EEC82E83E0D82EE12CF12C0E9400681979098A099B09683E7340810505A8F321E0C21AD108E108F10888EE0E83E0981EA11CB11CC114D104E1040429F7FF90EF90DF90CF90BF90AF90908F9008951F920F920FB60F921124933F938F939F93AF93BF9380910101910201A0910301B091040130910001E0230F2D3758F50196A11DB11D2093018093010190930201A0930301B093018091050190910601A0910701B091010196A11DB11D8093050190930601930701B0930801BF91AF919F918F91912F910F900FBE0F901F90189526E80F0296A11DB11DD2CF789484B58260BD84B5816084BD85B5826085BD85B56085BD80916E00816080936E00109200809181008260809381008091810060809381008091800081608093800091B10084608093B1008091B000816093B00080917A00846080937A00809100826080937A0080917A00816080930080917A00806880937A001092C100E9F0E02491EEE7F0E08491882399F0E0880F991FFC01E859FF4FA591B49101EE58FF4F859194918FB7F894EC912BEC938FBFC0E0D0E081E00E94700094DD0080E00E9470000E94DD002097F30E940000F1CFF894FFCFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'
+
 
 phone_number = '0934413429'
 text_message = 'Hello World!'
@@ -8,196 +13,174 @@ rxData = bytes()
 rxData = b''
 rxDataISP = bytes()
 rxDataISP = b''
-uart0 = UART(0, baudrate=115200, tx=Pin(16), rx=Pin(17))
-uart1 = UART(1, baudrate=115200, tx=Pin(4), rx=Pin(5))
-led = Pin(25, Pin.OUT)
-true = Pin(15, Pin.OUT)
-false = Pin(14, Pin.OUT)
-outTrue = Pin(13, Pin.OUT)
-sck = Pin(6, Pin.OUT)
-mosi = Pin(7, Pin.OUT)
-miso = Pin(4, Pin.OUT)
-sda = Pin(5, Pin.OUT)
-rst = Pin(22, Pin.OUT)
-spi = SPI(0, baudrate=100000, polarity=0, phase=0, sck=sck, mosi=mosi, miso=miso)
-poweron = Pin(2, Pin.OUT)
-ServerIP = "123.20.57.30"
-Port = '8080'
-card1 = "0x608e981b"
-card2 = "0x2063c1d2"
-card3 = ""
-card4 = ""
-card5 = ""
-card6 = ""
+uart0 = UART(0, baudrate=115200, tx=Pin(16), rx=Pin(17)) # for module SIM7600E
+uart1 = UART(1, baudrate=115200, tx=Pin(4), rx=Pin(5))  # for ATmega328P
+resetPin = Pin(3, Pin.OUT)
 
-state = 0
+def resetMCU():
+	resetPin.value(0)
+	time.sleep(0.001)
+	resetPin.value(1)
+	time.sleep(0.1)
+	resetPin.value(0)
+	time.sleep(0.001)
+	resetPin.value(1)
+	time.sleep(0.1)
 
-#  FTP
-ftp_user_name = 'user'
-ftp_user_password = ''
-ftp_server = ''
-download_file_name = ''
-upload_file_name = ''
+def sendByte(lists):
+	print(lists)
+	data = bytes(lists)
+	uart1.write(data)
+	current_time = time.time()
+	while uart1.any() > 0:
+		rxDataISP += uart1.read(1)
+		if (time.time() - current_time > 3) and (rxData[-1] != 0x10):
+			print('timeOut')
+			return 'TimeOut'
+	print(list(rxData))
+	return list(rxData)
 
 
-#  TCP
-APN = 'CMNET'
-Message = 'Hello'
+def getSync():
+	cmd = [0x30, 0x20]
+	return sendByte(cmd)
+
+def setProg():
+    cmd = [0x42, 0x86, 0x00, 0x00, 0x01, 0x01, 0x01, 0x01, 0x03, 0xff, 0xff, 0xff, 0xff, 0x00, 0x80, 0x04, 0x00, 0x00, 0x00, 0x80, 0x00, 0x20]
+    return sendByte(cmd)
+
+# set Device extend
+def setProgEx():
+    cmd = [0x45, 0x05, 0x04, 0xd7, 0xc2, 0x00, 0x20]
+    return sendByte(cmd)
 
 
+# Enter Program mode
+def enterProgMode():
+    cmd = [0x50, 0x20]
+    return sendByte(cmd)
 
-def send_at(command,back,timeout):
-	rxData1 = bytes()
-	uart0.write(command+'\r\n')
-	time.sleep(timeout)
-	print('checking')
-	time.sleep(1)
-	while uart0.any() > 0:
-		rxData1 += uart0.read(1)
-	print(rxData1.decode('utf-8'))
-	if rxData1 != b'':
-		if back not in rxData1.decode():
-			print(command + ' ERROR')
-			print(command + ' back:\t' + rxData1.decode('utf-8'))
-			return 0
-		else:
-			print(rxData1.decode('utf-8'))
-			return 1
-	else:
-		print('command: '+command+' is not ready')
-		return 0
+# Get signature
+def getSignature():
+    cmd = [0x75, 0x20]
+    sign = sendByte(cmd)
+    signature = sign[1:-1:1]
+    for s in range(len(AVR_signature)):
+        if AVR_signature[s] == signature:
+            return 'model: {}'.format(AVR_model[s])
+    return 'Unknown model (signature {}), please check again'.format(signature)
+
+# Universal:
+def universal():
+    # head = [0x56, 0x30, 0x00, 0x00, 0x00, 0x20]
+    head = [0x56]
+    tail = [0x00, 0x20]
+    cmd = [[0x30, 0x00, 0x00], [0x30, 0x00, 0x01], [0x30, 0x00, 0x02], [0xac, 0x80, 0x00]]
+    log = []
+    for i in cmd:
+        cmd_config = head + i + tail
+        ret = sendByte(cmd_config)
+    return ret
+
+# Leave Program mode
+def exProgMode():
+    cmd = [0x51, 0x20]
+    return sendByte(cmd)
 
 
+def IncreaseAddress(addr):
+    addr[0] += 0x40
+    if addr[0] >255:
+        addr[0] = 0x00
+        addr[1] += 0x01
+    return addr
 
-def SendShortMessage(phone_number,text_message):
+
+def loadAddress(addr):
+    head = [0x55]
+    tail = [0x20]
+    load_addr = head + addr + tail
+    return sendByte(load_addr)
+
+def flashPage(data):
+    head = [0x64, 0x00, 0x80,0x46]
+    tail = [0x20]
+    flash_page = head + data + tail
+    return sendByte(flash_page)
+
+# Read page on microchip
+def readPage(count):
+    read_addr = [0x00 ,0x00]
+    cmd = [0x74, 0x00, 0x80, 0x46, 0x20]
+    read_page =[]
+    for i in range(count):
+        loadAddress(read_addr)
+        page_raw = sendByte(cmd)
+        read_page.append(page_raw[1:-1:1])
+        IncreaseAddress(read_addr)
+    return read_page
+
+def compare(page, block):
+    log = []
+    for i in range(len(page)):
+        if page[i] != block[i]:
+            log.append('Verification Error: page[{}] != block[{}] #####{} $$$ {}#####'.format(i,i,page[i],block[i]))
+            for j in range(len(page[i])):
+                if page[i][j] != block[i][j]:
+                    log.append('First mismatch at byte {} :  {} != {} '.format(i*128+j, hex(page[i][j]), hex(block[i][j])))
+                    break
+            break
+    return log
+
+#=====================================================
+def start_Prog():
+	resetMCU()
+	print('get Sync')
+	print(getSync())
+	print('Set Prog')
+	print(setProg())
+	print('Set ProgEx')
+	print(setProgEx())
+	print('Chip is being erased')
+	print(universal())
+	print('Set Prog')
+	print(setProg())
+	print('Set ProgEx')
+	print(setProgEx())
+	print('Enter Programming session')
+	print(enterProgMode())
+	print('Get MCU signature: ')
+	print(getSignature())
+	print('Chip is being erased')
+	print(universal())
+
+def end_Prog():
+	print('Exit Programming mode')
+	print(exProgMode())
+	print('Hard reset MCU')
+	resetMCU()
+
+def AVR_ISP(hex_data):
+	addr = [0x00, 0x00]
+	add_count = len(hex_data)
+	print('Enter Programming mode:')
+	start_Prog()
 	
-	print("Setting SMS mode...")
-	send_at("AT+CMGF=1",'',1)
-	print("Sending Short Message")
-	print("AT+CMGS=\""+phone_number+"\"")
-	answer = send_at("AT+CMGS=\""+phone_number+"\"",">",2)
-	if 1 == answer:
-		uart0.write(text_message+'\r\n')
-		uart0.write(b'\x1A')
-		answer = send_at('','OK',20)
-		if 1 == answer:
-			print('send successfully')
-		else:
-			print('error')
-	else:
-		print('error%d'%answer)
+	for i in range(len(hex_data)):
+		print('Flash page at address: {}  {}'.format(hex(addr[0]),hex(addr[1])))
+		print(loadAddress(addr))
+		flashPage(hex_data[i])
+		IncreaseAddress(addr)
+	Page = readPage(add_count)
+	print(compare(Page, hex_data))
+	end_Prog()
 
 
-
-def get_gps_position():
-	send_at('AT+CGPSINFO','',1)
-
-
-
-def configureFTP(server,u_name,u_password):
-	send_at('AT+CFTPPORT=21','OK',1)
-	send_at('AT+CFTPMODE=1','OK',1)
-	send_at('AT+CFTPTYPE=A','OK',1)
-	send_at('AT+CFTPSERV='+'\"'+server+'\"','OK',1)
-	send_at('AT+CFTPUN='+'\"'+u_name+'\"','OK',1)
-	send_at('AT+CFTPPW='+'\"'+u_password+'\"','OK',1)
-
-def downloadFromFTP(file_name):
-	print('Download file from FTP...')
-	send_at('AT+CFTPGETFILE='+'\"'+file_name+'\",0','OK',1)
-
-def uploadToFTP(file_name):
-	print('Download file from FTP...')
-	send_at('AT+CFTPGETFILE='+'\"'+file_name+'\",0','OK',1)
-
-
-
-def TCP():
-	send_at('AT+CSQ','OK',1)
-	send_at('AT+CREG?','+CREG: 0,1',1)
-	send_at('AT+CPSI?','OK',1)
-	send_at('AT+CGREG?','+CGREG: 0,1',0.5)
-	send_at('AT+CGSOCKCONT=1,\"IP\",\"'+APN+'\"','OK',1)
-	send_at('AT+CSOCKSETPN=1', 'OK', 1)
-	send_at('AT+CIPMODE=0', 'OK', 1)
-	send_at('AT+NETOPEN', '+NETOPEN: 0',5)
-	send_at('AT+IPADDR', '+IPADDR:', 1)
-	send_at('AT+CIPOPEN=0,\"TCP\",\"'+ServerIP+'\",'+Port,'+CIPOPEN: 0,0', 5)
-	send_at('AT+CIPSEND=0,', '>', 2)#If not sure the message number,write the command like this: AT+CIPSEND=0, (end with 1A(hex))
-	ser.write(Message.encode())
-	if 1 == send_at(b'\x1a'.decode(),'OK',5):
-		print('send message successfully!')
-	send_at('AT+CIPCLOSE=0','+CIPCLOSE: 0,0',15)
-	send_at('AT+NETCLOSE', '+NETCLOSE: 0', 1)
-
-
-
-def PhoneCall(phone_number):
-	print('Start phonecall session')
-	send_at('ATD'+phone_number+';','OK',5)
-	time.sleep(10)
-	send_at('AT+CHUP','',1)
-	print('phonecall disconnected')
-
-
-
-def power_on():
-	print("Sim7600X is starting: ")
-	poweron.value(1)
-	time.sleep(2)
-	poweron.value(0)
-	print("turning on... ")
-	time.sleep(20)
-	print("Sim7600X is ready")
-
-
-
-def power_down():
-	print("Sim7600X is shuting down: ")
-	poweron.value(1)
-	time.sleep(3)
-	poweron.value(0)
-	time.sleep(18)
-	print("Good bye")
-	time.sleep(3)
-def RFID_check():
-    rdr = MFRC522(spi, sda, rst)
-    (stat, tag_type) = rdr.request(rdr.REQIDL)
-    if stat == rdr.OK:
-        (stat, raw_uid) = rdr.anticoll()
-        if stat == rdr.OK:
-            uid = ("0x%02x%02x%02x%02x" % (raw_uid[0], raw_uid[1], raw_uid[2], raw_uid[3]))
-            print(uid)
-            if uid == card1:
-                print('Correct Card')
-                true.value(1)
-                outTrue.value(1)
-                time.sleep(1)
-                outTrue.value(0)
-                time.sleep(1)
-                true.value(0)
-                return 1
-            else:
-                print('Wrong Card!!!')
-                false.value(1)
-                time.sleep(2)
-                false.value(0)
-                return 0
-    return 0
-true.value(0)
-false.value(0)
-outTrue.value(0)
-print('RFID system block ready')
-
-while True:
-	led.value(1)
-	time.sleep(0.06)
-	led.value(0)
-	check = 0
-	RFID_check()
-	
-
-
-
-
-
+#==============================[ main ]========================================
+time.sleep(3)
+data = DP.FormatData(Blink)
+AVR_ISP(data)
+time.sleep(5)
+data = DP.FormatData(Blink_chase)
+AVR_ISP(data)
+time.sleep(2)
