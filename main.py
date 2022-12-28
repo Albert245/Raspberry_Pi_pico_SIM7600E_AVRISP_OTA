@@ -9,36 +9,36 @@ Blink = '945C000C946E000C946E000C946E00946E000C946E000C946E000C946E00946E000C946
 
 phone_number = '0934413429'
 text_message = 'Hello World!'
-rxData = bytes()
-rxData = b''
-rxDataISP = bytes()
-rxDataISP = b''
 uart0 = UART(0, baudrate=115200, tx=Pin(16), rx=Pin(17)) # for module SIM7600E
 uart1 = UART(1, baudrate=115200, tx=Pin(4), rx=Pin(5))  # for ATmega328P
 resetPin = Pin(3, Pin.OUT)
 
 def resetMCU():
 	resetPin.value(0)
-	time.sleep(0.001)
+	time.sleep(0.05)
 	resetPin.value(1)
-	time.sleep(0.1)
+	time.sleep(0.15)
 	resetPin.value(0)
-	time.sleep(0.001)
+	time.sleep(0.05)
 	resetPin.value(1)
-	time.sleep(0.1)
+	time.sleep(0.15)
 
 def sendByte(lists):
-	print(lists)
-	data = bytes(lists)
-	uart1.write(data)
-	current_time = time.time()
-	while uart1.any() > 0:
-		rxDataISP += uart1.read(1)
-		if (time.time() - current_time > 3) and (rxData[-1] != 0x10):
-			print('timeOut')
-			return 'TimeOut'
-	print(list(rxData))
-	return list(rxData)
+    data = bytes(lists)
+    uart1.write(data)
+    print('Data sent')
+    print(data)
+    rxDataISP = bytes()
+    rxDataISP = b''
+    time.sleep(0.5)
+    current_time = time.time()
+    while uart1.any() > 0:
+        rxDataISP += uart1.read(1)
+    time.sleep(0.5)
+    ret = list(rxDataISP)
+    print('MCU Reply:')
+    print(rxDataISP)
+    return ret
 
 
 def getSync():
@@ -122,6 +122,7 @@ def readPage(count):
 
 def compare(page, block):
     log = []
+    print('comparing')
     for i in range(len(page)):
         if page[i] != block[i]:
             log.append('Verification Error: page[{}] != block[{}] #####{} $$$ {}#####'.format(i,i,page[i],block[i]))
@@ -130,6 +131,7 @@ def compare(page, block):
                     log.append('First mismatch at byte {} :  {} != {} '.format(i*128+j, hex(page[i][j]), hex(block[i][j])))
                     break
             break
+    print('End compare')
     return log
 
 #=====================================================
@@ -165,7 +167,6 @@ def AVR_ISP(hex_data):
 	add_count = len(hex_data)
 	print('Enter Programming mode:')
 	start_Prog()
-	
 	for i in range(len(hex_data)):
 		print('Flash page at address: {}  {}'.format(hex(addr[0]),hex(addr[1])))
 		print(loadAddress(addr))
@@ -177,10 +178,15 @@ def AVR_ISP(hex_data):
 
 
 #==============================[ main ]========================================
-time.sleep(3)
+resetPin.value(1)
+time.sleep(5)
+print('Enter')
+pre_data = bytes()
+pre_data = b''
 data = DP.FormatData(Blink)
 AVR_ISP(data)
 time.sleep(5)
 data = DP.FormatData(Blink_chase)
 AVR_ISP(data)
 time.sleep(2)
+
